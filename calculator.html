@@ -151,12 +151,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:64px;display:flex;ali
 .email-box-title{font-family:"Cormorant Garamond",serif;font-size:clamp(24px,3.5vw,40px);font-weight:300;line-height:1.1;letter-spacing:-0.5px;color:var(--white);margin-bottom:10px;}
 .email-box-title em{font-style:italic;color:var(--gold);}
 .email-box-p{font-size:14px;color:var(--text);line-height:1.7;font-weight:300;}
-.email-form{display:flex;gap:8px;margin-top:24px;}
-.email-input{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:14px 18px;font-family:"Syne",sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.email-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:24px;}
+.email-form-row{display:flex;gap:8px;grid-column:1/-1;}
+.email-input{background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:14px 18px;font-family:"Syne",sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;width:100%;}
 .email-input::placeholder{color:var(--muted);}
 .email-input:focus{border-color:rgba(201,168,76,0.4);}
-.email-submit{background:var(--gold);border:none;padding:14px 28px;cursor:none;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:var(--black);font-family:"Syne",sans-serif;transition:background 0.2s;white-space:nowrap;}
-.email-submit:hover{background:var(--gold2);}
+.email-submit{background:var(--gold);border:none;padding:14px 28px;cursor:none;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:var(--black);font-family:"Syne",sans-serif;transition:background 0.2s;white-space:nowrap;grid-column:1/-1;}
+.email-submit:hover:not(:disabled){background:var(--gold2);}
+.email-submit:disabled{opacity:0.6;cursor:not-allowed;}
 .email-privacy{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:1px;color:var(--muted2);margin-top:12px;}
 
 /* SUCCESS STATE */
@@ -195,7 +197,7 @@ footer{padding:32px 48px;border-top:1px solid var(--border);display:flex;align-i
   .results-grid{grid-template-columns:1fr;}
   .solution-box{grid-template-columns:1fr;gap:24px;}
   .email-box{padding:32px 24px;}
-  .email-form{flex-direction:column;}
+  .email-form{grid-template-columns:1fr;}
   .book-cta{padding:40px 24px;}
   footer{padding:24px 20px;flex-direction:column;gap:12px;text-align:center;}
   .steps{gap:0;}
@@ -414,15 +416,18 @@ footer{padding:32px 48px;border-top:1px solid var(--border);display:flex;align-i
         </div>
         <div class="email-form">
           <input class="email-input" id="nameInput" type="text" placeholder="Your first name">
-          <input class="email-input" id="emailInput" type="email" placeholder="Your business email">
-          <button class="email-submit" onclick="submitEmail()">Send My Report →</button>
+          <input class="email-input" id="phoneInput" type="tel" placeholder="Phone (optional)">
+          <div class="email-form-row">
+            <input class="email-input" id="emailInput" type="email" placeholder="Your business email" style="flex:1;">
+            <button class="email-submit" id="submitBtn" onclick="submitEmail()" style="flex-shrink:0;width:auto;padding:14px 28px;">Send My Report →</button>
+          </div>
         </div>
         <div class="email-privacy">🔒 No spam. No selling your info. One email with your report + one follow-up from John.</div>
       </div>
       <div class="email-success" id="emailSuccess">
         <div class="email-success-icon">✓</div>
         <div class="email-success-title">Report on its way.</div>
-        <p class="email-success-p">Check your inbox in the next few minutes. John will also personally follow up to answer any questions about your specific situation.</p>
+        <p class="email-success-p">Check your inbox in the next few minutes. John will personally follow up to answer any questions about your specific situation.</p>
       </div>
     </div>
 
@@ -463,32 +468,28 @@ document.getElementById("missedRate").addEventListener("input",function(){
 // QUICK SELECT
 function setVal(id,val){
   document.getElementById(id).value=val;
-  // Update active state
   event.target.parentElement.querySelectorAll(".qs-btn").forEach(function(b){b.classList.remove("active");});
   event.target.classList.add("active");
 }
 
+// STORE CALC RESULTS GLOBALLY (used by submitEmail)
+var calcResults = {};
+
 // STEP NAVIGATION
 var currentStep=1;
 function goToStep(n){
-  // Validate current step
   if(n > currentStep){
     var valid=validateStep(currentStep);
     if(!valid) return;
   }
-  // Hide current
   document.getElementById("step"+currentStep).classList.remove("active");
-  // Update dots
   updateDots(n);
-  // Show next
   currentStep=n;
   setTimeout(function(){
     var el=document.getElementById("step"+n);
     el.classList.add("active");
   },50);
-  // Update progress
   document.getElementById("progressFill").style.width=(n/4*100)+"%";
-  // Scroll to top of calc
   window.scrollTo({top:200,behavior:"smooth"});
 }
 
@@ -564,6 +565,18 @@ function showResults(){
   var annualLoss=weeklyLoss*52;
   var threeYearLoss=annualLoss*3;
 
+  // Save globally for form submission
+  calcResults = {
+    monthlyLoss: Math.round(monthlyLoss),
+    annualLoss: Math.round(annualLoss),
+    threeYearLoss: Math.round(threeYearLoss),
+    weeklyLoss: Math.round(weeklyLoss),
+    clientValue: clientVal,
+    weeklyLeads: weeklyLeads,
+    closeRate: Math.round(closeRate * 100),
+    missedRate: Math.round(missedRate * 100)
+  };
+
   // Hide step 4, show results
   document.getElementById("step4").classList.remove("active");
   document.getElementById("stepResults").classList.add("active");
@@ -582,7 +595,6 @@ function showResults(){
     var ml=document.getElementById("monthlyLoss");
     ml.textContent="$0";
     animateNumber(ml,Math.round(monthlyLoss),"$","");
-
     setTimeout(function(){
       document.getElementById("weeklyLoss").textContent=fmt(weeklyLoss);
       document.getElementById("annualLoss").textContent=fmt(annualLoss);
@@ -593,17 +605,46 @@ function showResults(){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-// EMAIL SUBMIT
+// EMAIL SUBMIT — posts to Netlify function → GHL
 function submitEmail(){
   var name=document.getElementById("nameInput").value.trim();
   var email=document.getElementById("emailInput").value.trim();
+  var phone=document.getElementById("phoneInput").value.trim();
+
   if(!name){alert("Please enter your name.");return;}
   if(!email||!email.includes("@")){alert("Please enter a valid email.");return;}
-  // Show success
-  document.getElementById("emailForm").style.display="none";
-  document.getElementById("emailSuccess").style.display="block";
-  // Store lead (could connect to email service here)
-  console.log("Lead captured:",name,email);
+
+  var btn=document.getElementById("submitBtn");
+  btn.textContent="Sending...";
+  btn.disabled=true;
+
+  fetch("/.netlify/functions/capture-lead",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      firstName: name,
+      email: email,
+      phone: phone,
+      monthlyLoss: calcResults.monthlyLoss||0,
+      annualLoss: calcResults.annualLoss||0,
+      threeYearLoss: calcResults.threeYearLoss||0,
+      clientValue: calcResults.clientValue||0,
+      weeklyLeads: calcResults.weeklyLeads||0,
+      closeRate: calcResults.closeRate||0,
+      missedRate: calcResults.missedRate||0
+    })
+  })
+  .then(function(res){return res.json();})
+  .then(function(){
+    document.getElementById("emailForm").style.display="none";
+    document.getElementById("emailSuccess").style.display="block";
+  })
+  .catch(function(err){
+    console.error("Submission error:",err);
+    // Still show success — don't block user on backend errors
+    document.getElementById("emailForm").style.display="none";
+    document.getElementById("emailSuccess").style.display="block";
+  });
 }
 
 // Input sync on typing
