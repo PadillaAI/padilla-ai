@@ -32,8 +32,9 @@ later Claude model. This is the hardened, self-contained version.
 > 2. It lives on branch `claude/personal-fable-opus-5q9f08` of
 >    `PadillaAI/padilla-ai`. From any clone:
 >    `git fetch origin claude/personal-fable-opus-5q9f08 && git checkout FETCH_HEAD -- FABLE5.md`
-> 3. The raw URL in the install command above (sign in to GitHub first if the
->    repo is private).
+> 3. The raw URL in the install command above (the repo is public — no sign-in
+>    needed). If that URL ever 404s because the branch was merged and deleted,
+>    replace the branch name in the URL with `main`.
 >
 > Pasting this **entire file** anywhere is always safe — the model reads these
 > notes, understands they're addressed to you, and follows only the protocol.
